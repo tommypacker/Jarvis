@@ -6,6 +6,9 @@ var bot = controller.spawn({
 	token: myToken
 })
 
+//Load other modules
+var weather = require('./weather');
+
 //Fire up bot
 bot.startRTM(function(err,bot,payload) {
   if (err) {
@@ -14,7 +17,10 @@ bot.startRTM(function(err,bot,payload) {
 });
 
 controller.hears(['hello', 'hi', 'hey'],'direct_message,direct_mention,mention,ambient', function(bot, message){
-	bot.reply(message, 'Hello ' + getUserName(message));
+	bot.api.users.list({exclude_archived: 1}, function (err, res) {
+  		messageUser = getUser(res.members, message.user);
+		bot.reply(message, 'Hello ' + messageUser.profile.first_name);
+	});
 });
 
 controller.hears(['jarvis', 'butler'],'direct_message,direct_mention,mention,ambient', function(bot, message){
@@ -29,12 +35,24 @@ controller.on('user_channel_join',function(bot,message) {
   	bot.reply(message, "Welcome " + getUserName(message));
 });
 
-controller.hears(['weather'],'ambient', function(bot, message){
-	bot.reply(message, 'It is 72 Degrees and Sunny');
+controller.hears(['weather in'],'direct_message,direct_mention,mention,ambient', function(bot, message){
+	var location = message.text.substring(message.text.indexOf('in')+3);
+	console.log(location);
+	weather.getWeather(location, function(err, returnMessage){
+		if(returnMessage){
+			bot.reply(message, returnMessage);
+		}
+	});
 });
 
 
-
 function getUserName(message){
-	return "<@" + message.user + "|cal>"
+	return "<@" + message.user + "|cal>";
+}
+
+function getUser(memberList, memberID){
+	var toReturn = memberList.filter(function(v){
+		return v.id === memberID;
+	})[0];
+	return toReturn;
 }
