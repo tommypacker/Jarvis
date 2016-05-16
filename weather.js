@@ -2,17 +2,17 @@ var https = require('https');
 
 var getWeather = function (location, callback){
 	var url = 'https://query.yahooapis.com/v1/public/yql?q=select item from weather.forecast where woeid in (select woeid from geo.places where text=' + '\'' + location + '\'' + ')&format=json';
-	//console.log(url);
+	console.log(url);
 
 	https.get(url, function(res){
 		res.setEncoding('binary');
-		var resData = "";
+		var resultJSON = "";
 		res.on('data', function(chunk){
-			return resData += chunk;
+			return resultJSON += chunk;
 		});
 
 		res.on('end', function(){
-			var result = JSON.parse(resData);
+			var result = JSON.parse(resultJSON);
 			if(result.query.results == null){
 				callback(null, "Sorry, that's an invalid location");
 			}
@@ -22,6 +22,7 @@ var getWeather = function (location, callback){
                 var returnMessage = 'It\'s currently ' + result.query.results.channel[0].item.condition.temp + ' degrees and ' + result.query.results.channel[0].item.condition.text + ' in ' + parseLocation(locationString);
                 callback(null, returnMessage);
             }else{
+            	var locationString = result.query.results.channel.item.title;
                 var returnMessage = 'It\'s currently ' + result.query.results.channel.item.condition.temp + ' degrees and ' + result.query.results.channel.item.condition.text  + ' in ' + parseLocation(locationString);
                 callback(null, returnMessage);
             }
@@ -30,7 +31,15 @@ var getWeather = function (location, callback){
 }
 
 function parseLocation(string){
-	return string.substring(string.indexOf('for')+4, string.indexOf(','));
+	if(string){
+		return string.substring(string.indexOf('for')+4, getNthLocation(string, ',', 2));
+	}else{
+		return "";
+	}
+}
+
+function getNthLocation(str, m, i){
+	return str.split(m, i).join(m).length;
 }
 
 /*getWeather('Chicago', function (err, message) {
