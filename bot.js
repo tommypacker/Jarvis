@@ -16,14 +16,14 @@ bot.startRTM(function(err,bot,payload) {
   }
 });
 
-controller.hears(['hello', 'hi', 'hey'],'direct_message,direct_mention,mention,ambient', function(bot, message){
+controller.hears(["^hello", "^hi", "^hey"],'direct_message,direct_mention,mention,ambient', function(bot, message){
 	bot.api.users.list({exclude_archived: 1}, function (err, res) {
   		messageUser = getUser(res.members, message.user);
 		bot.reply(message, 'Hello ' + messageUser.profile.first_name);
 	});
 });
 
-controller.hears(['jarvis', 'butler'],'direct_message,direct_mention,mention,ambient', function(bot, message){
+controller.hears(['^jarvis', '^butler'],'direct_message,direct_mention,mention,ambient', function(bot, message){
 	bot.api.users.list({exclude_archived: 1}, function (err, res) {
   		messageUser = getUser(res.members, message.user);
 		bot.reply(message, 'What can I do for you ' + messageUser.profile.first_name + '?');
