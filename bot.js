@@ -13,18 +13,28 @@ bot.startRTM(function(err,bot,payload) {
   }
 });
 
-controller.hears(['hello', 'hi'],'direct_message,direct_mention,mention', function(bot, message){
-	bot.reply(message, 'Hello Sir');
+controller.hears(['hello', 'hi', 'hey'],'direct_message,direct_mention,mention,ambient', function(bot, message){
+	bot.reply(message, 'Hello ' + getUserName(message));
+});
+
+controller.hears(['jarvis', 'butler'],'direct_message,direct_mention,mention,ambient', function(bot, message){
+	bot.reply(message, 'What can I do for you ' + getUserName(message) + '?');
+});
+
+controller.on('channel_leave',function(bot,message) {
+  	bot.reply(message, "Goodbye " + getUserName(message));
+});
+
+controller.on('user_channel_join',function(bot,message) {
+  	bot.reply(message, "Welcome " + getUserName(message));
 });
 
 controller.hears(['weather'],'ambient', function(bot, message){
 	bot.reply(message, 'It is 72 Degrees and Sunny');
 });
 
-controller.on('channel_leave',function(bot,message) {
-  	bot.reply(message, "Goodbye " + message.text.substr(0, message.text.indexOf(' ')));
-})
 
-controller.on('user_channel_join',function(bot,message) {
-  	bot.reply(message, "Welcome " + message.text.substr(0, message.text.indexOf(' ')));
-})
+
+function getUserName(message){
+	return "<@" + message.user + "|cal>"
+}
