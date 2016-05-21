@@ -30,6 +30,15 @@ controller.hears(['^jarvis', '^butler'],'direct_message,direct_mention,mention,a
 	});
 });
 
+controller.hears(['weather in'],'direct_message,direct_mention,mention,ambient', function(bot, message){
+	var location = message.text.substring(message.text.indexOf('in')+3);
+	weather.getWeather(location, function(err, returnMessage){
+		if(returnMessage){
+			bot.reply(message, returnMessage);
+		}
+	});
+});
+
 controller.on('channel_leave',function(bot,message) {
   	bot.reply(message, "Goodbye " + getUserName(message));
 });
@@ -38,12 +47,11 @@ controller.on('user_channel_join',function(bot,message) {
   	bot.reply(message, "Welcome " + getUserName(message));
 });
 
-controller.hears(['weather in'],'direct_message,direct_mention,mention,ambient', function(bot, message){
-	var location = message.text.substring(message.text.indexOf('in')+3);
-	weather.getWeather(location, function(err, returnMessage){
-		if(returnMessage){
-			bot.reply(message, returnMessage);
-		}
+controller.hears(['do some math'], 'direct_message, direct_mention', function(bot, message){
+	bot.startConversation(message, function(err, convo){
+		convo.ask('What would you like to know?', function(response, convo){
+
+		});
 	});
 });
 
@@ -57,4 +65,8 @@ function getUser(memberList, memberID){
 		return v.id === memberID;
 	})[0];
 	return toReturn;
+}
+
+function parseMathString(string){
+	
 }
