@@ -8,7 +8,7 @@ var getWeather = function (location, callback){
 		res.setEncoding('binary');
 		var resultJSON = "";
 		res.on('data', function(chunk){
-			return resultJSON += chunk;
+			resultJSON += chunk;
 		});
 
 		res.on('end', function(){

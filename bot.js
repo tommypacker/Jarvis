@@ -1,6 +1,6 @@
 //Get bot setup
 var Botkit = require('botkit');
-var myToken = require('./Token').token;
+var myToken = require('./token').token;
 var controller = Botkit.slackbot();
 var bot = controller.spawn({
 	token: myToken
@@ -8,6 +8,7 @@ var bot = controller.spawn({
 
 //Load other modules
 var weather = require('./weather');
+var math = require('./math');
 
 //Fire up bot
 bot.startRTM(function(err,bot,payload) {
@@ -50,7 +51,13 @@ controller.on('user_channel_join',function(bot,message) {
 controller.hears(['do some math'], 'direct_message, direct_mention', function(bot, message){
 	bot.startConversation(message, function(err, convo){
 		convo.ask('What would you like to know?', function(response, convo){
-
+			//console.log(response);
+			var answer = "";
+			math.solveEquation(response.text, function(err, answer){
+				console.log(answer);
+				convo.say(answer);
+				convo.next();
+			});
 		});
 	});
 });
