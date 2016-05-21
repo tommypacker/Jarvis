@@ -17,6 +17,19 @@ bot.startRTM(function(err,bot,payload) {
   }
 });
 
+var mathConvo = function(response, convo){
+	convo.ask('Ok, give me a problem to solve', function(response, convo){
+		//console.log(response);
+		var answer = "";
+		math.solveEquation(response.text, function(err, answer){
+			console.log(answer);
+			convo.say("The answer is " + answer);
+			convo.next();
+		});
+	});
+	convo.next();
+}
+
 controller.hears(["^hello", "^hi", "^hey"],'direct_message,direct_mention,mention,ambient', function(bot, message){
 	bot.api.users.list({exclude_archived: 1}, function (err, res) {
   		messageUser = getUser(res.members, message.user);
@@ -27,7 +40,13 @@ controller.hears(["^hello", "^hi", "^hey"],'direct_message,direct_mention,mentio
 controller.hears(['^jarvis', '^butler'],'direct_message,direct_mention,mention,ambient', function(bot, message){
 	bot.api.users.list({exclude_archived: 1}, function (err, res) {
   		messageUser = getUser(res.members, message.user);
-		bot.reply(message, 'What can I do for you ' + messageUser.profile.first_name + '?');
+  		bot.startConversation(message, function(err, convo){
+  			convo.ask('What can I do for you ' + messageUser.profile.first_name + '?', function(response, convo){
+  				if(response.text.includes('math')){
+  					mathConvo(response, convo);
+  				}
+  			});
+  		});
 	});
 });
 
@@ -49,17 +68,7 @@ controller.on('user_channel_join',function(bot,message) {
 });
 
 controller.hears(['do some math'], 'direct_message, direct_mention', function(bot, message){
-	bot.startConversation(message, function(err, convo){
-		convo.ask('What would you like to know?', function(response, convo){
-			//console.log(response);
-			var answer = "";
-			math.solveEquation(response.text, function(err, answer){
-				console.log(answer);
-				convo.say(answer);
-				convo.next();
-			});
-		});
-	});
+	bot.startConversation(message, mathConvo);
 });
 
 //Helper Functions
