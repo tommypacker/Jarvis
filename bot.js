@@ -21,8 +21,24 @@ bot.startRTM(function(err,bot,payload) {
 
 controller.hears(['^jarvis', '^butler'],'direct_message,direct_mention,mention,ambient', function(bot, message){
 	bot.api.users.list({exclude_archived: 1}, function (err, res) {
-  		messageUser = getUser(res.members, message.user);
-  		bot.startConversation(message, startConvo);
+		checkUserInStorage(controller, message, function(isThere){
+  			if(isThere){
+  				getUserFromStorage(controller, message, function(name){
+  					messageUserName = name;
+  					bot.startConversation(message, startConvo);
+  				});
+  			}else{
+  				console.log("called");
+  				user = {
+	            	id: message.user,
+	            };
+	            messageUser = getUser(res.members, message.user);
+	            user.name = messageUser.profile.first_name;
+	        	controller.storage.users.save(user, function(err, id) {});
+  				messageUserName = user.name; 
+  				bot.startConversation(message, startConvo);
+  			}
+  		});
 	});
 });
 
@@ -36,7 +52,7 @@ controller.hears(['call me (.*)', 'my name is (.*)'], 'direct_message,direct_men
         }
         user.name = name;
         controller.storage.users.save(user, function(err, id) {
-            bot.reply(message, 'Got it. I will call you ' + user.name + ' from now on');
+            bot.reply(message, 'Got it. I\'ll call you ' + user.name + ' from now on');
         });
     });
 });
@@ -81,19 +97,33 @@ controller.on('user_channel_join',function(bot,message) {
 
 //Helper Functions
 startConvo = function(err, convo){
-	convo.ask('What can I do for you ' + messageUser.profile.first_name + '?', function(response, convo){
+	convo.ask('What can I do for you ' + messageUserName + '?', function(response, convo){
 		if(response.text.includes('math')){
 			mathConvo(response, convo, function(){
 				console.log("callback");
-				convo.ask('Is there anything else I can do for you?', function(response, convo){
-					if(response.text.includes('yes')){
-						startConvo(null, convo); //Continue conversation
-						convo.next();
-					}else{
-						convo.say("Ok, sounds good sir");
-						convo.next();
+				convo.ask('Is there anything else I can do for you?', [
+					{
+						pattern: 'yes',
+						callback: function(response, convo){
+							startConvo(null, convo);
+							convo.next();
+						}	
+					},
+					{
+						pattern: 'no',
+						callback: function(response, convo){
+							convo.say('Ok, sounds good sir');
+							convo.next();
+						}
+					},
+					{
+						default: true,
+						callback: function(response, convo){
+							convo.say('Ok, sounds good sir');
+							convo.next();
+						}
 					}
-				});
+				]);
 			});
 		}else{
 			convo.say("Not sure what that means sir");
