@@ -17,36 +17,17 @@ bot.startRTM(function(err,bot,payload) {
   }
 });
 
-var mathConvo = function(response, convo){
-	convo.ask('Ok, give me a problem to solve', function(response, convo){
-		//console.log(response);
-		var answer = "";
-		math.solveEquation(response.text, function(err, answer){
-			console.log(answer);
-			convo.say("The answer is " + answer);
-			convo.next();
-		});
+controller.hears(['^jarvis', '^butler'],'direct_message,direct_mention,mention,ambient', function(bot, message){
+	bot.api.users.list({exclude_archived: 1}, function (err, res) {
+  		messageUser = getUser(res.members, message.user);
+  		bot.startConversation(message, startConvo);
 	});
-	convo.next();
-}
+});
 
 controller.hears(["^hello", "^hi", "^hey"],'direct_message,direct_mention,mention,ambient', function(bot, message){
 	bot.api.users.list({exclude_archived: 1}, function (err, res) {
   		messageUser = getUser(res.members, message.user);
 		bot.reply(message, 'Hello ' + messageUser.profile.first_name);
-	});
-});
-
-controller.hears(['^jarvis', '^butler'],'direct_message,direct_mention,mention,ambient', function(bot, message){
-	bot.api.users.list({exclude_archived: 1}, function (err, res) {
-  		messageUser = getUser(res.members, message.user);
-  		bot.startConversation(message, function(err, convo){
-  			convo.ask('What can I do for you ' + messageUser.profile.first_name + '?', function(response, convo){
-  				if(response.text.includes('math')){
-  					mathConvo(response, convo);
-  				}
-  			});
-  		});
 	});
 });
 
@@ -67,11 +48,42 @@ controller.on('user_channel_join',function(bot,message) {
   	bot.reply(message, "Welcome " + getUserName(message));
 });
 
-controller.hears(['do some math'], 'direct_message, direct_mention', function(bot, message){
-	bot.startConversation(message, mathConvo);
-});
-
 //Helper Functions
+startConvo = function(err, convo){
+	convo.ask('What can I do for you ' + messageUser.profile.first_name + '?', function(response, convo){
+		if(response.text.includes('math')){
+			mathConvo(response, convo, function(){
+				console.log("callback");
+				convo.ask('Is there anything else I can do for you?', function(response, convo){
+					if(response.text.includes('yes')){
+						startConvo(null, convo); //Continue conversation
+					}else{
+						convo.say("Ok, sounds good");
+					}
+					convo.next();
+				});
+			});
+		}else{
+			convo.next();
+		}
+	});
+}
+
+
+function mathConvo(response, convo, callback){
+	convo.ask('Ok, give me a problem to solve', function(response, convo){
+		//console.log(response);
+		var answer = "";
+		math.solveEquation(response.text, function(err, answer){
+			console.log(answer);
+			convo.say("The answer is " + answer);
+			callback();
+			convo.next();
+		});
+	});
+	convo.next();
+}
+
 function getUserName(message){
 	return "<@" + message.user + "|cal>";
 }
@@ -83,6 +95,3 @@ function getUser(memberList, memberID){
 	return toReturn;
 }
 
-function parseMathString(string){
-	
-}
