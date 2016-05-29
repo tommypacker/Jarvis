@@ -19,83 +19,16 @@ bot.startRTM(function(err,bot,payload) {
   }
 });
 
-controller.hears(['^jarvis', '^butler'],'direct_message,direct_mention,mention,ambient', function(bot, message){
-	bot.api.users.list({exclude_archived: 1}, function (err, res) {
-		checkUserInStorage(controller, message, function(isThere){
-  			if(isThere){
-  				getUserFromStorage(controller, message, function(name){
-  					messageUserName = name;
-  					bot.startConversation(message, startConvo);
-  				});
-  			}else{
-  				console.log("called");
-  				user = {
-	            	id: message.user,
-	            };
-	            messageUser = getUser(res.members, message.user);
-	            user.name = messageUser.profile.first_name;
-	        	controller.storage.users.save(user, function(err, id) {});
-  				messageUserName = user.name; 
-  				bot.startConversation(message, startConvo);
-  			}
-  		});
-	});
-});
-
-controller.hears(['call me (.*)', 'my name is (.*)'], 'direct_message,direct_mention,mention', function(bot, message) {
-    var name = message.match[1];
-    controller.storage.users.get(message.user, function(err, user) {
-        if (!user) {
-            user = {
-                id: message.user,
-            };
-        }
-        user.name = name;
-        controller.storage.users.save(user, function(err, id) {
-            bot.reply(message, 'Got it. I\'ll call you ' + user.name + ' from now on');
-        });
-    });
-});
-
-controller.hears(["^hello", "^hi", "^hey"],'direct_message,direct_mention,mention,ambient', function(bot, message){
-	bot.api.users.list({exclude_archived: 1}, function (err, res) {
-  		checkUserInStorage(controller, message, function(isThere){
-  			if(isThere){
-  				getUserFromStorage(controller, message, function(name){
-  					bot.reply(message, 'Hello ' + name);
-  				});
-  			}else{
-  				console.log("called");
-  				user = {
-	            	id: message.user,
-	            };
-	            messageUser = getUser(res.members, message.user);
-	            user.name = messageUser.profile.first_name;
-	        	controller.storage.users.save(user, function(err, id) {});
-  				bot.reply(message, 'Hello ' + messageUser.profile.first_name);
-  			}
-  		});
-	});
-});
-
-controller.hears(['weather in'],'direct_message,direct_mention,mention,ambient', function(bot, message){
+//Helper Functions
+weatherFinder = function(bot, message){
 	var location = message.text.substring(message.text.indexOf('in')+3);
 	weather.getWeather(location, function(err, returnMessage){
 		if(returnMessage){
 			bot.reply(message, returnMessage);
 		}
 	});
-});
+}
 
-controller.on('channel_leave',function(bot,message) {
-  	bot.reply(message, "Goodbye " + getUserName(message));
-});
-
-controller.on('user_channel_join',function(bot,message) {
-  	bot.reply(message, "Welcome " + getUserName(message));
-});
-
-//Helper Functions
 startConvo = function(err, convo){
 	convo.ask('What can I do for you ' + messageUserName + '?', function(response, convo){
 		if(response.text.includes('math')){
@@ -175,4 +108,74 @@ function getUser(memberList, memberID){
 	})[0];
 	return toReturn;
 }
+
+//Event triggers
+controller.hears(['^jarvis', '^butler'],'direct_message,direct_mention,mention,ambient', function(bot, message){
+	bot.api.users.list({exclude_archived: 1}, function (err, res) {
+		checkUserInStorage(controller, message, function(isThere){
+  			if(isThere){
+  				getUserFromStorage(controller, message, function(name){
+  					messageUserName = name;
+  					bot.startConversation(message, startConvo);
+  				});
+  			}else{
+  				console.log("called");
+  				user = {
+	            	id: message.user,
+	            };
+	            messageUser = getUser(res.members, message.user);
+	            user.name = messageUser.profile.first_name;
+	        	controller.storage.users.save(user, function(err, id) {});
+  				messageUserName = user.name; 
+  				bot.startConversation(message, startConvo);
+  			}
+  		});
+	});
+});
+
+controller.hears(['call me (.*)', 'my name is (.*)'], 'direct_message,direct_mention,mention', function(bot, message) {
+    var name = message.match[1];
+    controller.storage.users.get(message.user, function(err, user) {
+        if (!user) {
+            user = {
+                id: message.user,
+            };
+        }
+        user.name = name;
+        controller.storage.users.save(user, function(err, id) {
+            bot.reply(message, 'Got it. I\'ll call you ' + user.name + ' from now on');
+        });
+    });
+});
+
+controller.hears(["^hello", "^hi", "^hey"],'direct_message,direct_mention,mention,ambient', function(bot, message){
+	bot.api.users.list({exclude_archived: 1}, function (err, res) {
+  		checkUserInStorage(controller, message, function(isThere){
+  			if(isThere){
+  				getUserFromStorage(controller, message, function(name){
+  					bot.reply(message, 'Hello ' + name);
+  				});
+  			}else{
+  				console.log("called");
+  				user = {
+	            	id: message.user,
+	            };
+	            messageUser = getUser(res.members, message.user);
+	            user.name = messageUser.profile.first_name;
+	        	controller.storage.users.save(user, function(err, id) {});
+  				bot.reply(message, 'Hello ' + messageUser.profile.first_name);
+  			}
+  		});
+	});
+});
+
+controller.hears(['weather in'],'direct_message,direct_mention,mention,ambient', weatherFinder);
+
+controller.on('channel_leave',function(bot,message) {
+  	bot.reply(message, "Goodbye " + getUserName(message));
+});
+
+controller.on('user_channel_join',function(bot,message) {
+  	bot.reply(message, "Welcome " + getUserName(message));
+});
 
