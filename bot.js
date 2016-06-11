@@ -155,11 +155,9 @@ controller.hears(['call me (.*)', 'my name is (.*)'], 'direct_message,direct_men
 
 controller.hears(["^hello", "^hi", "^hey"],'direct_message,direct_mention,mention,ambient', function(bot, message){
 	bot.api.users.list({exclude_archived: 1}, function (err, res) {
-  		checkUserInStorage(controller, message, function(isThere){
-  			if(isThere){
-  				getUserFromStorage(controller, message, function(name){
-  					bot.reply(message, 'Hello ' + name);
-  				});
+  		checkUserInStorage(controller, message, function(response){
+  			if(response.isThere){
+  				bot.reply(message, 'Hello ' + response.user.name);
   			}else{
   				console.log("called");
   				user = {
