@@ -11,6 +11,12 @@ var bot = controller.spawn({
 //Load other modules
 var weather = require('./weather');
 var math = require('./math');
+var nlp = require('./nlp');
+
+
+//Get Current Date
+var utc = new Date().toJSON().slice(0,10);
+utc = utc.toString();
 
 //Fire up bot
 bot.startRTM(function(err,bot,payload) {
@@ -116,26 +122,42 @@ function getUser(memberList, memberID){
 	return toReturn;
 }
 
+function logSentiment(message){
+	nlp.getSentiment(message.text, function(returnScore){
+		controller.storage.users.get(message.user, function(err, user){
+			if(user[utc] != undefined){
+				user[utc] += returnScore;
+			}else{
+				user[utc] = returnScore;
+			}
+			controller.storage.users.save(user, function(err, id){
+				console.log(user);
+			})
+		});
+	});
+}
+
+
 //Event triggers
 controller.hears(['^jarvis', '^butler'],'direct_message,direct_mention,mention,ambient', function(bot, message){
-	bot.api.users.list({exclude_archived: 1}, function (err, res) {
-		checkUserInStorage(controller, message, function(response){
-  			if(response.isThere){
-  				messageUserName = response.user.name;
-  				bot.startConversation(message, startConvo);
-  			}else{
+	checkUserInStorage(controller, message, function(response){
+  		if(response.isThere){
+  			messageUserName = response.user.name;
+  			bot.startConversation(message, startConvo);
+  		}else{
+  			bot.api.users.list({exclude_archived: 1}, function (err, res) {
   				console.log("called");
-  				user = {
-	            	id: message.user,
-	            };
-	            messageUser = getUser(res.members, message.user);
-	            user.name = messageUser.profile.first_name;
-	        	controller.storage.users.save(user, function(err, id) {});
-  				messageUserName = user.name; 
-  				bot.startConversation(message, startConvo);
-  			}
-  		});
-	});
+	  			user = {
+		         	id: message.user,
+		        };
+		        messageUser = getUser(res.members, message.user);
+		        user.name = messageUser.profile.first_name;
+		        controller.storage.users.save(user, function(err, id) {});
+	  			messageUserName = user.name; 
+	  			bot.startConversation(message, startConvo);
+  			});
+  		}
+  	});
 });
 
 controller.hears(['call me (.*)', 'my name is (.*)'], 'direct_message,direct_mention,mention', function(bot, message) {
@@ -154,25 +176,29 @@ controller.hears(['call me (.*)', 'my name is (.*)'], 'direct_message,direct_men
 });
 
 controller.hears(["^hello", "^hi", "^hey"],'direct_message,direct_mention,mention,ambient', function(bot, message){
-	bot.api.users.list({exclude_archived: 1}, function (err, res) {
-  		checkUserInStorage(controller, message, function(response){
-  			if(response.isThere){
-  				bot.reply(message, 'Hello ' + response.user.name);
-  			}else{
+	checkUserInStorage(controller, message, function(response){
+  		if(response.isThere){
+  			bot.reply(message, 'Hello ' + response.user.name);
+  		}else{
+  			bot.api.users.list({exclude_archived: 1}, function (err, res) {
   				console.log("called");
-  				user = {
-	            	id: message.user,
-	            };
+	  			user = {
+		        	id: message.user,
+		        };
 	            messageUser = getUser(res.members, message.user);
 	            user.name = messageUser.profile.first_name;
 	        	controller.storage.users.save(user, function(err, id) {});
   				bot.reply(message, 'Hello ' + messageUser.profile.first_name);
-  			}
-  		});
-	});
+  			});
+  		}
+  	});
 });
 
 controller.hears(['weather in'],'direct_message,direct_mention,mention,ambient', weatherFinder);
+
+controller.hears('(.*?)', 'direct_message,direct_mention,mention,ambient', function(bot, message){
+	logSentiment(message);
+})
 
 controller.on('channel_leave',function(bot,message) {
   	bot.reply(message, "Goodbye " + getUserName(message));
