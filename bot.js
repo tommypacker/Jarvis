@@ -122,17 +122,26 @@ function getUser(memberList, memberID){
 	return toReturn;
 }
 
-function logSentiment(message){
+function logSentiment(message, callback){
 	nlp.getSentiment(message.text, function(returnScore){
 		controller.storage.users.get(message.user, function(err, user){
 			if(user[utc] != undefined){
-				user[utc] += returnScore;
+				user[utc].score += returnScore;
+				user[utc].count += 1;
 			}else{
-				user[utc] = returnScore;
+				var logTuple = {
+					score: returnScore,
+					count: 1
+				}
+				user[utc] = logTuple;
 			}
 			controller.storage.users.save(user, function(err, id){
 				console.log(user);
-			})
+				if(user[utc].score/user[utc].count <= -4){
+					console.log(user[utc].score/user[utc].count);
+					callback(false);
+				}
+			});
 		});
 	});
 }
@@ -197,7 +206,32 @@ controller.hears(["^hello", "^hi", "^hey"],'direct_message,direct_mention,mentio
 controller.hears(['weather in'],'direct_message,direct_mention,mention,ambient', weatherFinder);
 
 controller.hears('(.*?)', 'direct_message,direct_mention,mention,ambient', function(bot, message){
-	logSentiment(message);
+	var msgToAnalyze = message;
+	checkUserInStorage(controller, message, function(response){
+  		if(response.isThere){
+  			logSentiment(msgToAnalyze, function(isHappy){
+  				if(!isHappy){
+  					bot.reply(message, "You seem upset today. Here's an emoji to cheer you up :poop:");
+  				}
+  			});
+  		}else{
+  			bot.api.users.list({exclude_archived: 1}, function (err, res) {
+  				console.log("called");
+	  			user = {
+		        	id: message.user,
+		        };
+	            messageUser = getUser(res.members, message.user);
+	            user.name = messageUser.profile.first_name;
+	        	controller.storage.users.save(user, function(err, id) {
+	        		logSentiment(msgToAnalyze, function(isHappy){
+	        			if(!isHappy){
+	        				bot.reply(message, "You seem upset today. Here's an emoji to cheer you up :poop:");
+	        			}
+	        		});
+	        	});
+  			});
+  		}
+  	});
 })
 
 controller.on('channel_leave',function(bot,message) {
