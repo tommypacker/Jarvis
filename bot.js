@@ -31,7 +31,7 @@ weatherFinder = function(bot, message){
 
 startConvo = function(err, convo){
 	convo.ask('What can I do for you ' + messageUserName + '?', function(response, convo){
-		if(response.text.includes('math')){
+		if(response.text.includes('math') || response.text.includes('calculation')){
 			mathConvo(response, convo, function(){
 				console.log("callback");
 				convo.ask('Is there anything else I can do for you?', [
@@ -87,11 +87,18 @@ function getUserName(message){
 function checkUserInStorage(controller, message, callback){
 	controller.storage.users.get(message.user, function(err, user) {
 		//console.log(user);
-        if (user === undefined) {
-            callback(false);
+        if (user === undefined || user === '') {
+        	var userTuple = {
+        		isThere: false,
+        		user: 'None'
+        	}
         }else{
-        	callback(true);
+        	var userTuple = {
+        		isThere: true,
+        		user: user
+        	}
         }
+        callback(userTuple);
     });
 }
 
@@ -112,12 +119,10 @@ function getUser(memberList, memberID){
 //Event triggers
 controller.hears(['^jarvis', '^butler'],'direct_message,direct_mention,mention,ambient', function(bot, message){
 	bot.api.users.list({exclude_archived: 1}, function (err, res) {
-		checkUserInStorage(controller, message, function(isThere){
-  			if(isThere){
-  				getUserFromStorage(controller, message, function(name){
-  					messageUserName = name;
-  					bot.startConversation(message, startConvo);
-  				});
+		checkUserInStorage(controller, message, function(response){
+  			if(response.isThere){
+  				messageUserName = response.user.name;
+  				bot.startConversation(message, startConvo);
   			}else{
   				console.log("called");
   				user = {
